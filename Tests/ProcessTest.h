@@ -27,7 +27,7 @@ TEST_F(ProcessTest, Process) {
 
 
 	//------ Testcase 2: Run a continuous process and stop it ------
-	process.runProcess("top");
+	process.runProcess(950,"top");
 	EXPECT_TRUE(process.processValid) << "One continuous process was executed!";
 
 	process.isAlive();
@@ -41,7 +41,7 @@ TEST_F(ProcessTest, Process) {
 
 
 	//------ Testcase 3: Read the output of a process ------
-	process.runProcess("./readTest.sh");
+	process.runProcess(1000, "./readTest.sh");
 	string received = process.readFromProcess();
 	cout << "received Msg: " << received << endl;
 	EXPECT_EQ(received,"This text is the output of the process\n");
@@ -51,7 +51,7 @@ TEST_F(ProcessTest, Process) {
 
 
 	//------ Testcase 4: write test ------
-	process.runProcess("./writeTest.sh");
+	process.runProcess(1050, "./writeTest.sh");
 	process.sendToProcess("This text is the input to the process\n");
 	received = process.readFromProcess();
 	cout << "received Msg: " << received << endl;
@@ -62,7 +62,7 @@ TEST_F(ProcessTest, Process) {
 
 
 	//------ Testcase 5: load test ------
-	process.runProcess("./loadTest.sh");
+	process.runProcess(1100, "./loadTest.sh");
 	EXPECT_EQ(process.cpuUsage,"-1");
 	EXPECT_EQ(process.memUsage,"-1");
 

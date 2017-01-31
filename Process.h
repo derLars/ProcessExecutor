@@ -21,6 +21,7 @@ public:
 	bool processValid;
 	pid_t processID;
 	string command;
+	int commandID;
 
 	//Provided information after calling 'obtainProcessInformation'
 	string timestamp;
@@ -29,7 +30,7 @@ public:
 
 	Process();
 
-	Process(string command);
+	Process(int commandID, string command);
 
 	virtual ~Process();
 
@@ -37,7 +38,7 @@ public:
 	 * Create a sub-process which calls the command.
 	 * Create a reading- and writing-pipe between main process and subprocess.
 	 */
-	bool runProcess(string command);
+	bool runProcess(int commandID, string command);
 
 	/**
 	 * Read incoming message bytewise as long as the are bytes to read or the end of line is reached.

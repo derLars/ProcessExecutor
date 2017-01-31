@@ -30,15 +30,15 @@ Process::Process() {
 	memUsage = "-1";
 }
 
-Process::Process(string command) : Process() {
-	runProcess(command);
+Process::Process(int commandID, string command) : Process() {
+	runProcess(commandID, command);
 }
 
 Process::~Process() {
 	endProcess();
 }
 
-bool Process::runProcess(string command) {
+bool Process::runProcess(int commandID, string command) {
 	processValid = true;
 
 	int inputPipe[2];
@@ -102,6 +102,7 @@ bool Process::runProcess(string command) {
 	receivePipe = outputPipe[0];
 
 	this->command = command;
+	this->commandID = commandID;
 	processID = pid;
 
 	return processValid;

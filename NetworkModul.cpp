@@ -82,6 +82,7 @@ void NetworkModul::waitForMessage() {
 
 		//wait for incoming connections
 		newsockfd = accept(sockfd, (struct sockaddr *)&cli_addr, &clilen);
+		string ip = inet_ntoa(cli_addr.sin_addr);
 
 		//termine condition
 		if(!running) {
@@ -105,6 +106,8 @@ void NetworkModul::waitForMessage() {
 		  exit(1);
 		}
 
+		string message = buffer;
+		message += ip;
 		//write message into message queue and send a notification
 		//to waiting threads
 		messageMutex.lock();

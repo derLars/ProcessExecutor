@@ -14,7 +14,7 @@
 //#include <sys/socket.h>
 //#include <netinet/in.h>
 //#include <netinet/ip.h>
-//#include <arpa/inet.h>
+#include <arpa/inet.h>
 
 //Allows the use of a C++ queue
 #include <queue>
@@ -24,6 +24,7 @@
 #include <condition_variable>
 
 using namespace std;
+
 
 class NetworkModul {
 public:
