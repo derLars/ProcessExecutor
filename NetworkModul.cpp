@@ -127,8 +127,6 @@ void NetworkModul::waitForMessage() {
 			}else{
 				message->setPayload(payload);
 			}
-
-			close(sockfd);
 		}
 
 		//termine condition

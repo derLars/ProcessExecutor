@@ -29,7 +29,6 @@ TEST_F(CommandExecutorTestCase, CommandExecutor) {
 	NetworkModul network(1550);
 	auto runCommandMessage = make_shared<RunCommandMessage>("localhost",1550,1000, 0,"./loadTest.sh");
 
-
 	auto client = network.connectToClient("localhost",1337);
 	network.sendMessage(client, runCommandMessage);
 	network.disconnectFromClient(client);
