@@ -19,11 +19,13 @@
 //Necessary for the 'bzero' call
 #include <string.h>
 
+#define HEADER_SIZE 12
+
 NetworkModul::NetworkModul(): NetworkModul(1337) {
 	//Arbitrary defined standard port of 1337 in case no port is mentioned
 }
 
-NetworkModul::NetworkModul(int port) : running(false), port(port), tcpConnection(-1), sockfd(-1) {
+NetworkModul::NetworkModul(int port) : settedUp(false), running(false), port(port), tcpConnection(-1), sockfd(-1) {
 
 }
 
@@ -31,7 +33,8 @@ NetworkModul::~NetworkModul() {
 	stopConnection();
 }
 
-bool NetworkModul::startConnection() {
+void NetworkModul::startConnection() {
+	running = true;
 	struct sockaddr_in serv_addr;
 
 	//create a socket
@@ -41,7 +44,7 @@ bool NetworkModul::startConnection() {
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (sockfd < 0) {
 		cout << "ERROR opening socket" << endl;
-		return false;
+		running = false;
 	}
 
 	//set the given number of bytes to 0
@@ -56,11 +59,13 @@ bool NetworkModul::startConnection() {
 	//bind the socket to port
 	if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
 		cout << "ERROR binding" << endl;
-		return false;
+		running = false;
 	}
 
-	running = true;
-	return true;
+	settedUp = true;
+	if(running) {
+		waitForMessage();
+	}
 }
 
 void NetworkModul::waitForMessage() {
@@ -74,7 +79,7 @@ void NetworkModul::waitForMessage() {
 	listen(sockfd,5);
 	clilen = sizeof(cli_addr);
 
-	char buffer[256];
+	char header[HEADER_SIZE];
 	int  n;
 
 	while(running) {
@@ -84,35 +89,58 @@ void NetworkModul::waitForMessage() {
 		newsockfd = accept(sockfd, (struct sockaddr *)&cli_addr, &clilen);
 		string ip = inet_ntoa(cli_addr.sin_addr);
 
-		//termine condition
-		if(!running) {
-			cout << "ending connection!" << endl;
-			close(sockfd);
-			return;
-		}
 		cout << "received connection" << endl;
 
 		//something went wrong
 		if (newsockfd < 0) {
-			exit(1);
+			continue;
 		}
 
 		//connection is established,start communicating
-		bzero(buffer,256);
-		n = read( newsockfd,buffer,255 );
+		bzero(header,HEADER_SIZE);
+		n = read( newsockfd,header,HEADER_SIZE );
 
 		if (n < 0) {
-		  perror("ERROR reading from socket");
-		  exit(1);
+		  perror("ERROR reading HEADER from socket");
+		  continue;
 		}
 
-		string message = buffer;
-		message += ip;
+		auto message = make_shared<Message>(header, ip);
+
+		auto payloadSize = message->getMessageSize();
+		if(payloadSize) {
+			char payload[payloadSize];
+
+			bzero(payload,payloadSize);
+			n = read(newsockfd,payload,payloadSize);
+
+			if (n < 0) {
+				perror("ERROR reading PAYLOAD from socket");
+				continue;
+			}
+
+			if(payload[n] != 'n') {
+				char modPayload[n];
+
+				strncpy(modPayload, payload, n);
+				message->setPayload(modPayload);
+			}else{
+				message->setPayload(payload);
+			}
+
+			close(sockfd);
+		}
+
+		//termine condition
+		if(!running) {
+			cout << "ending connection!" << endl;
+			return;
+		}
+
 		//write message into message queue and send a notification
 		//to waiting threads
 		messageMutex.lock();
-			messageQueue.push(buffer);
-			printf("Enqueued: %s\n",buffer);
+			messageQueue.push(message);
 		messageMutex.unlock();
 		messageAvailable.notify_one();
 	}
@@ -120,7 +148,7 @@ void NetworkModul::waitForMessage() {
 	close(sockfd);
 }
 
-string NetworkModul::processMessage() {
+shared_ptr<Message> NetworkModul::processMessage() {
 	unique_lock<mutex> lock(messageMutex);
 
 	cout << "waiting for message to process!" << endl;
@@ -131,7 +159,7 @@ string NetworkModul::processMessage() {
 
 		//terminate condition
 		if(!running) {
-			return "";
+			return make_shared<Message>();
 		}
 	}
 
@@ -141,63 +169,78 @@ string NetworkModul::processMessage() {
 	return message;
 }
 
-bool NetworkModul::sendMessage(string ip, int port, string message) {
-	bool status = true;
-	int sockfd;
-	int n;
-	struct sockaddr_in serv_addr;
-	struct hostent *server;
+int NetworkModul::connectToClient(string ip, int port) {
+	int sockFd = -1;
+
+	struct sockaddr_in cli_addr;
+	struct hostent *client;
 
 	//create a socket
 	//AF_INET: Use of IPv4 internet protocol
 	//SOCK_STREAM: Two-way connection as byte stream
 	//Last parameter 0: no particular protocol specified
-	sockfd = socket(AF_INET, SOCK_STREAM, 0);
-	if(sockfd < 0) {
+	sockFd = socket(AF_INET, SOCK_STREAM, 0);
+	if(sockFd < 0) {
 		cout << "could not create a socket!" << endl;
-		status = false;
 	}
 
-	//define the server
-	server = gethostbyname(ip.c_str());
-	if(sockfd < 0) {
-		cout << "could not identify a server!" << endl;
-		status = false;
+	//define the client
+	client = gethostbyname(ip.c_str());
+	if(client < 0) {
+		cout << "could not identify a client!" << endl;
+		sockFd = -1;
 	}
 
 	//set the given number of bytes to 0
 	//AF_INET: Use of IPv4 internet protocol
-	bzero((char *) &serv_addr, sizeof(serv_addr));
-	serv_addr.sin_family = AF_INET;
+	bzero((char *) &cli_addr, sizeof(cli_addr));
+	cli_addr.sin_family = AF_INET;
 
-	//htons(port): Define the port of server
-	bcopy((char *)server->h_addr, (char *)&serv_addr.sin_addr.s_addr, server->h_length);
-	serv_addr.sin_port = htons(port);
+	//htons(port): Define the port of client
+	bcopy((char *)client->h_addr, (char *)&cli_addr.sin_addr.s_addr, client->h_length);
+	cli_addr.sin_port = htons(port);
 
 	//connect to server
-	if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) {
+	if (connect(sockFd,(struct sockaddr *) &cli_addr,sizeof(cli_addr)) < 0) {
 		cout << "connection not able!" << endl;
-		status = false;
+		sockFd = -1;
 	}
+
+	cout << "sockFd created: " << sockFd << endl;
+	return sockFd;
+}
+
+void  NetworkModul::disconnectFromClient(int sockFd) {
+	close(sockFd);
+}
+
+bool NetworkModul::sendMessage(int sockFd, shared_ptr<Message> message) {
+	bool status = true;
+	int n;
 
 	//send message to server
-	n = write(sockfd,message.c_str(),message.size());
+	n = write(sockFd,message->getByteMessage().data(),HEADER_SIZE+message->getMessageSize());
 	if(n < 0) {
-		cout << "could not write to server!" << endl;
+		cout << "could not write to client!" << endl;
 		status = false;
 	}
-
-	close(sockfd);
 
 	return status;
 }
 
 void NetworkModul::stopConnection() {
-	running = false;
+	if(running) {
+		running = false;
 
-	//send a message to own server connection to wake up the waiting connection thread
-	sendMessage("localhost", port, "");
+		//send a message to own server connection to wake up the waiting connection thread
+		//TODO: Create an particular Messagetype for this case
+		auto clientFd = connectToClient("localhost",port);
+		auto stopMessage = make_shared<RunCommandMessage>("localhost",port,0,0,"");
 
-	//send notification to all threads
-	messageAvailable.notify_all();
+		sendMessage(clientFd,stopMessage);
+
+		disconnectFromClient(clientFd);
+		//send notification to all threads
+		messageAvailable.notify_all();
+	}
 }

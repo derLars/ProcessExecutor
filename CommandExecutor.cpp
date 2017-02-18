@@ -8,49 +8,58 @@
 #include "CommandExecutor.h"
 #include <iostream>
 
-CommandExecutor::CommandExecutor(int port, int maxRunningCommands): maxRunningCommands(maxRunningCommands) {
+CommandExecutor::CommandExecutor(int port, int maxRunningCommands): maxRunningCommands(maxRunningCommands), running(true) {
 	network = make_shared<NetworkModul>(port);
 
 	networkThread = thread(&NetworkModul::startConnection, network);
 
+	while(!network->settedUp){}
+	running = network->running;
+
+	subscribeRate = 1000;
+
 	for(int i=0; i<MSGTHREAD; i++) {
-		msgThreadpool.push_back(thread(&NetworkModul::processMessage, network));
+		msgThreadpool.push_back(thread(&CommandExecutor::processMessage, this));
 	}
-
-	//runningCommands = unordered_map<int, shared_ptr<Process>>();
-
 }
 
 CommandExecutor::~CommandExecutor() {
-	// TODO Auto-generated destructor stub
+	network->stopConnection();
 }
 
 void CommandExecutor::processMessage() {
 	while(running) {
-		auto messageStream = network->processMessage();
-		auto message = splitString(messageStream, "|__|");
+		auto message = network->processMessage();
 
-		if(message[0] == "runCommand" && message.size() == 6) {
-			runCommand(stoi(message[2],0), message[3]);
+		switch(message->getMessageID()) {
+		case 1:
+			cout << "Processing runCommandMessage" << endl;
+			//auto runCommandMessage = static_pointer_cast<RunCommandMessage>(message);
 
-			subscribeRate = stoi(message[4],0);
-			updateSubscriber(message[5], stoi(message[1],0));
-		}else if(message[0] == "stopCommand" && message.size() == 3){
-			stopCommand(stoi(message[1],0));
-		}else if(message[0] == "stopAllCommands" && message.size() == 2){
-			stopAllCommands();
-		}else if(message[0] == "subscribeRate" && message.size() == 4){
-			subscribeRate = stoi(message[2],0);
-			updateSubscriber(message[3], stoi(message[1],0));
+			//Add subscriber
+			 auto key = subscriber.find (message->getIP());
+			 if( key == subscriber.end() ) {
+				 auto clientFd = network->connectToClient(message->getIP(), message->getPort());
+				 subscriber[message->getIP()] = clientFd;
+
+			 }
+
+			 runCommand(static_pointer_cast<RunCommandMessage>(message));
+
+			 break;
 		}
 	}
+}
+
+void CommandExecutor::sendMessage(int port, string message) {
+	//network->sendMessage("localhost", port, message);
 }
 
 void CommandExecutor::updateSubscriber(string ip, int port) {
 	subscriber[ip] = port;
 }
 
-vector<string> CommandExecutor::splitString(string str, string delimiter) {
+/*vector<string> CommandExecutor::splitString(string str, string delimiter) {
 	vector<char> cstr(str.c_str(), str.c_str() + str.size() + 1);
 	vector<char> deli(delimiter.c_str(), delimiter.c_str() + delimiter.size() + 1);
 
@@ -60,7 +69,7 @@ vector<string> CommandExecutor::splitString(string str, string delimiter) {
 	string currentSubWord = "";
 	//iterate each character and compare with given delimiter
 
-	int i = 0;
+	unsigned int i = 0;
 	for(auto& chr : cstr) {
 		if(chr == deli[i]) {
 			i++;
@@ -82,7 +91,6 @@ vector<string> CommandExecutor::splitString(string str, string delimiter) {
 
 			i=0;
 		}
-
 	}
 
 	if(currentSubWord.size()) {
@@ -95,42 +103,39 @@ vector<string> CommandExecutor::splitString(string str, string delimiter) {
 	}
 
 	return result;
-}
+}*/
 
-bool CommandExecutor::runCommand(int commandID, string command) {
+void CommandExecutor::runCommand(shared_ptr<RunCommandMessage> message) {
 	unique_lock<mutex> lock(commandMutex);
 
-	auto currentProcess = runningCommands.find(commandID);
-	if(currentProcess != runningCommands.end()) {
-		(currentProcess->second)->endProcess();
-		runningCommands.erase(commandID);
-	}
+	 //End current running process
+	 auto alreadyRunning = runningProcess.find (message->getCommandID());
+	 if(alreadyRunning != runningProcess.end()){
+		 (alreadyRunning->second)->endProcess();
+		 runningProcess.erase(message->getCommandID());
+	 }
 
-	if(runningCommands.size() < maxRunningCommands) {
-		auto process = make_shared<Process>(commandID, command);
-		if (process->processValid) {
-			runningCommands.emplace(commandID, process);
-			return true;
-		}
-	}
-	return false;
+	 //Run process
+	 if(runningProcess.size() < maxRunningCommands) {
+		 runningProcess[message->getCommandID()] = make_shared<Process>(message->getCommandID(),message->getCommand());
+	 }
 }
 
 void CommandExecutor::stopCommand(int commandID) {
 	unique_lock<mutex> lock(commandMutex);
 
-	auto currentProcess = runningCommands.find(commandID);
-	if(currentProcess != runningCommands.end()) {
+	auto currentProcess = runningProcess.find(commandID);
+	if(currentProcess != runningProcess.end()) {
 		(currentProcess->second)->endProcess();
-		runningCommands.erase(commandID);
+		runningProcess.erase(commandID);
 	}
 }
 
 void CommandExecutor::stopAllCommands(void) {
 	unique_lock<mutex> lock(commandMutex);
 
-	for (auto& currentProcess: runningCommands) {
+	for (auto& currentProcess: runningProcess) {
 		currentProcess.second->endProcess();
-		runningCommands.erase(currentProcess.first);
+		runningProcess.erase(currentProcess.first);
 	}
 }

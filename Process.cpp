@@ -14,6 +14,10 @@
 #include <signal.h>
 #include <sys/wait.h>
 
+//#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+
 //provides a timestamp
 #include <chrono>
 #include <ctime>
@@ -23,8 +27,8 @@
 Process::Process() {
 	processID = -1;
 	processValid = false;
-	sendPipe = -1;
-	receivePipe = -1;
+	//sendPipe = -1;
+	//receivePipe = -1;
 
 	cpuUsage = "-1";
 	memUsage = "-1";
@@ -57,9 +61,33 @@ bool Process::runProcess(int commandID, string command) {
 		processValid = false;
 	}
 
+	pipeToProcess = "/tmp/pipes/" + to_string(commandID) + "toProcess";
+	pipeFromProcess = "/tmp/pipes/" + to_string(commandID) + "fromProcess";
+
+	int status = -1;
+
+	status = mkdir("/tmp/pipes",0777);
+
+	status = mkfifo(pipeToProcess.c_str(), S_IRUSR|S_IWUSR|S_IROTH|S_IWOTH);
+	if(status<0) {
+		cout << "pipe 1 not created" << endl;
+		//processValid = false;
+	}
+
+	status = mkfifo(pipeFromProcess.c_str(), S_IRUSR|S_IWUSR|S_IROTH|S_IWOTH);
+	if(status<0) {
+		cout << "pipe 2 not created" << endl;
+		//processValid = false;
+	}
+
+	this->command = command;
+	this->commandID = commandID;
+
+	command += " < " + pipeToProcess + " > " + pipeFromProcess + " & echo $!";
+
 	auto pid = fork();
 
-	if (!processValid || pid < 0) {
+	if (pid < 0) {
 		//Something went wrong during the duplication of the process
 		close(inputPipe[0]);
 		close(inputPipe[1]);
@@ -87,46 +115,69 @@ bool Process::runProcess(int commandID, string command) {
 		//setsid creates a new process group in which the calling process is the process leader.
 		setsid();
 
-		//Execute the command
+		 //Execute the command
 		//The current process will be replaced by the process which will be created by the execution.
-		execl("/bin/sh", "sh", "-c", command.c_str(), NULL);
-
+		execl("/bin/bash", "bash", "-c", command.c_str(), NULL);
+		//system(command.c_str());
 		_exit(1);
 	}
 
+	originalID = pid;
 	//The parent process does only need one end of the pipes
 	close(inputPipe[0]);
 	close(outputPipe[1]);
 
-	sendPipe 	= inputPipe[1];
-	receivePipe = outputPipe[0];
+	//sendPipe 	= inputPipe[1];
+	//receivePipe = outputPipe[0];
 
-	this->command = command;
-	this->commandID = commandID;
-	processID = pid;
+	//system("sleep 1");
+	processID = obtainPID(outputPipe[0]);
+	processID = processID.substr(0,processID.size()-1);
+
+	if(!processID.size()) {
+		processValid = false;
+	}
+	cout << "process: " << processID << endl;
+
+	//Open the created pipes
+	sendFd = open(pipeToProcess.c_str(), O_WRONLY);
+	receiveFd = open(pipeFromProcess.c_str(), O_RDONLY);
+	if((!processValid) || sendFd == -1 || receiveFd == -1) {
+		close(sendFd);
+		close(receiveFd);
+		processValid = false;
+	}
 
 	return processValid;
 }
 
+void Process::sendToProcess(string message) {
+	//write(sendPipe, message.c_str(), message.size());
+	write(sendFd, message.c_str(), message.size());
+}
+
 string Process::readFromProcess() {
+	return readFromPipe(receiveFd);
+}
+
+string Process::obtainPID(int pipe) {
+	return readFromPipe(pipe);
+}
+
+string Process::readFromPipe(int pipe) {
 	string outputString = "";
 	if(processValid) {
 		char character = ' ';
 		int bytes = 0;
 		do {
-			bytes = read(receivePipe, &character, sizeof(character));
+			bytes = read(pipe, &character, sizeof(character));
 			outputString += character;
 			if(character == '\n') {
 				break;
 			}
 		}while(bytes > 0);
 	}
-
 	return outputString;
-}
-
-void Process::sendToProcess(string message) {
-	write(sendPipe, message.c_str(), message.size());
 }
 
 bool Process::obtainProcessInformation() {
@@ -136,13 +187,11 @@ bool Process::obtainProcessInformation() {
 		// -b			-> Batch mode (readable output)
 		// -p PID		-> Process of interest.
 		// | grep PID	-> filter header
-		auto topCommand = "top -n 1 -b -p " + to_string(processID) + "  | grep " + to_string(processID);
-
+		auto topCommand = "top -n 1 -b -p " + processID + "  | grep " + processID;
 		//prepare variables
 		auto numOfBytes = 128;
 		char buffer[numOfBytes];
 		string processInformation = "";
-
 		//open pipe and read information
 		auto pipe = popen(topCommand.c_str(), "r");
 		if (!pipe) {
@@ -161,9 +210,10 @@ bool Process::obtainProcessInformation() {
 
 		//provide the obtained information
 		auto vec = splitString(processInformation, ' ');
+
 		if(vec.size() > 7) {
-			cpuUsage = vec[6];
-			memUsage = vec[7];
+			cpuUsage = vec[8];
+			memUsage = vec[9];
 			timestamp = createTimestamp();
 			return true;
 		}
@@ -172,10 +222,10 @@ bool Process::obtainProcessInformation() {
 }
 
 void Process::endProcess() {
-	kill(processID,SIGTERM);
+	kill (atoi(processID.c_str()),SIGTERM);
 
-	auto status = -1;
-	while(wait(&status) > 0) { }
+	while(obtainProcessInformation()) {}
+
 	processValid = false;
 }
 
@@ -183,10 +233,13 @@ bool Process::isAlive() {
 	//sending a 0 to the process provides the information if
 	//a process is still alive and if a user is allowed to send signals to the process.
 	//If both is true, the function call returns 0.
-	if(kill(processID,0) == 0) {
+
+	int status = kill(atoi(processID.c_str()),0);
+	if(status == 0) {
 		processValid = true;
 		return true;
 	}
+
 	processValid = false;
 	return false;
 }

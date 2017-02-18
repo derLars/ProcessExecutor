@@ -26,23 +26,37 @@ TEST_F(NetworkModulTest, NetworkModul) {
 	//------ Testcase 1: sending and receiving ------
 	int port = 1337;
 
-	networkModul.startConnection();
+	std::thread receiver(&NetworkModul::startConnection, &networkModul);
 
-	bool processed = false;
-	std::thread receiver(&NetworkModul::waitForMessage, &networkModul);
+	system("sleep 1");
 
-	if(!processed) {
-		string messageToSend = "This is a testmessage";
+	auto sentMessage = make_shared<RunCommandMessage>("localhost",port,1000, 0,"This is a testmessage\n");
+	//networkModul.sendMessage(static_pointer_cast<Message>(testMessage));
 
-		processed = true;
+	auto serverFd = networkModul.connectToClient("localhost",port);
 
-		networkModul.sendMessage("localhost", port, messageToSend);
-		string receivedMessage = networkModul.processMessage();
+	networkModul.sendMessage(serverFd,sentMessage);
 
-		ASSERT_EQ(messageToSend, receivedMessage);
-		networkModul.stopConnection();
-	}
+	networkModul.disconnectFromClient(serverFd);
 
+	cout << "checkpoint" << endl;
+	auto receivedMessage = networkModul.processMessage();
+
+	//------ Testcase 2: interpret plain data ------
+	ASSERT_EQ(sentMessage->getMessageID(), receivedMessage->getMessageID());
+	ASSERT_EQ(sentMessage->getMessageSize(), receivedMessage->getMessageSize());
+	ASSERT_EQ(sentMessage->getPayload(), receivedMessage->getPayload());
+
+
+	//------ Testcase 3: cast to original message type ------
+	auto castedMessage = static_pointer_cast<RunCommandMessage>(receivedMessage);
+
+	ASSERT_EQ(sentMessage->getCommandID(), castedMessage->getCommandID());
+	ASSERT_EQ(sentMessage->hasRootRight(), castedMessage->hasRootRight());
+	ASSERT_EQ(sentMessage->getCommand(), castedMessage->getCommand());
+
+
+	networkModul.stopConnection();
 	receiver.join();
 
 

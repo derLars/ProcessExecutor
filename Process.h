@@ -8,18 +8,23 @@
 #ifndef PROCESS_H_
 #define PROCESS_H_
 
+#include <iostream>
+
 //Allows the use of a C++ string
 #include <string>
 
 //Allows the use of a C++ vector
 #include <vector>
 
+//#include <boost/variant.hpp>
+
 using namespace std;
 
 class Process {
 public:
 	bool processValid;
-	pid_t processID;
+	string processID;
+	string originalID;
 	string command;
 	int commandID;
 
@@ -37,6 +42,9 @@ public:
 	/**
 	 * Create a sub-process which calls the command.
 	 * Create a reading- and writing-pipe between main process and subprocess.
+	 *
+	 * @param commandID a unique id for each command
+	 * @param command the command to be executed
 	 */
 	bool runProcess(int commandID, string command);
 
@@ -47,6 +55,8 @@ public:
 
 	/**
 	 * Send a message to the sub-process through the pipe.
+	 *
+	 * @param message the message/input to the process
 	 */
 	void sendToProcess(string message);
 
@@ -70,12 +80,20 @@ public:
 	bool isAlive();
 
 private:
-	int sendPipe;
+	int sendFd;
+	int receiveFd;
+
 	int receivePipe;
+
+	string pipeToProcess;
+	string pipeFromProcess;
 
 	/**
 	 * Helper function to split strings into substrings
 	 * The delimiter must consists of only one character.
+	 *
+	 * @param str the string which needs to be cut
+	 * @param delimiter the delimiter
 	 */
 	vector<string> splitString(string str, char delimiter);
 
@@ -84,6 +102,22 @@ private:
 	 * hh:mm:ss
 	 */
 	string createTimestamp();
+
+	/**
+	 * Helperfunction to obtain the PID of the process.
+	 * This function should only be called directly after running an external
+	 * process. The first information the process sends is the PID
+	 *
+	 * @param pipe pipe file descriptor
+	 */
+	string obtainPID(int pipe);
+
+	/**
+	 * Reading function, wrapped by 'readFromProcess' and 'obtainPID'
+	 *
+	 * @param pipe pipe file discriptor
+	 */
+	string readFromPipe(int pipe);
 };
 
 

@@ -27,9 +27,10 @@
 #include "../googleTestLib/gtest/gtest.h"
 
 //INCLUDE YOUR TESTCASES HERE!
-//#include "CommandExecutorTestCase.h"
-#include "ProcessTest.h"
-#include "NetworkModulTest.h"
+#include "CommandExecutorTestCase.h"
+//#include "ProcessTest.h"
+//#include "NetworkModulTest.h"
+//#include "MessageTest.h"
 
 int main(int argc, char** argv) {
 	::testing::InitGoogleTest(&argc, argv);

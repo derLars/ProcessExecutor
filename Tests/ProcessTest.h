@@ -24,10 +24,8 @@ TEST_F(ProcessTest, Process) {
 	//------ Testcase 1: Initial condition ------
 	EXPECT_FALSE(process.processValid) << "No process was executed!";
 
-
-
 	//------ Testcase 2: Run a continuous process and stop it ------
-	process.runProcess(950,"top");
+	process.runProcess(950,"./top");
 	EXPECT_TRUE(process.processValid) << "One continuous process was executed!";
 
 	process.isAlive();
@@ -39,9 +37,12 @@ TEST_F(ProcessTest, Process) {
 	EXPECT_FALSE(process.processValid) << "Process was ended and should not be alive!";
 
 
-
 	//------ Testcase 3: Read the output of a process ------
+
 	process.runProcess(1000, "./readTest.sh");
+	//string pid = process.readFromProcess(6);
+	//cout << "received PID: " << pid << endl;
+
 	string received = process.readFromProcess();
 	cout << "received Msg: " << received << endl;
 	EXPECT_EQ(received,"This text is the output of the process\n");
@@ -49,16 +50,22 @@ TEST_F(ProcessTest, Process) {
 	process.endProcess();
 
 
-
 	//------ Testcase 4: write test ------
+
 	process.runProcess(1050, "./writeTest.sh");
+
 	process.sendToProcess("This text is the input to the process\n");
+	//process.sendToProcess("This text is the input to the process\n");
+	//received = process.readFromProcess();
+	//cout << "received 1 Msg: " << received << endl;
+
+	//process.sendToProcess("This text is the input to the process\n");
 	received = process.readFromProcess();
-	cout << "received Msg: " << received << endl;
+	cout << "received 2 Msg: " << received << endl;
+
 	EXPECT_EQ(received,"This text is the input to the process\n");
-
+	//EXPECT_FALSE(process.isAlive());
 	process.endProcess();
-
 
 
 	//------ Testcase 5: load test ------

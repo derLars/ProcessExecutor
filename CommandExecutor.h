@@ -23,15 +23,20 @@ using namespace std;
 
 class CommandExecutor {
 public:
+	bool running;
+
 	CommandExecutor(int port, int maxRunningCommands);
 	virtual ~CommandExecutor();
 
-	bool runCommand(int commandID, string command);
+	void runCommand(shared_ptr<RunCommandMessage> message);
 
 	void stopCommand(int commandID);
 	void stopAllCommands(void);
 
 	void updateSubscriber(string ip, int port);
+
+	void sendMessage(int port, string message);
+
 private:
 	shared_ptr<NetworkModul> network;
 
@@ -39,20 +44,17 @@ private:
 	thread networkThread;
 	vector<thread> msgThreadpool;
 
-
-
-
 	void processMessage();
 
 	atomic<bool> subscribed;
 	mutex commandMutex;
+
 	unsigned int maxRunningCommands;
-	unordered_map<int,shared_ptr<Process>> runningCommands;
+
+	unordered_map<int,shared_ptr<Process>> runningProcess;
 	unordered_map<string, int> subscriber;
 
-	bool running;
-
-	vector<string> splitString(string str, string delimiter);
+	//vector<string> splitString(string str, string delimiter);
 
 	int subscribeRate;
 };
