@@ -30,7 +30,7 @@ TEST_F(NetworkModulTest, NetworkModul) {
 
 	system("sleep 1");
 
-	auto sentMessage = make_shared<RunCommandMessage>("localhost",port,1000, 0,"This is a testmessage\n");
+	auto sentMessage = make_shared<RunCommandMessage>(port,1000, 0,"This is a testmessage\n");
 	//networkModul.sendMessage(static_pointer_cast<Message>(testMessage));
 
 	auto serverFd = networkModul.connectToClient("localhost",port);

@@ -6,6 +6,7 @@
  */
 
 #include "NetworkModul.h"
+#include "message/StopSystemMessage.h"
 
 //Necessary for the 'cout' command
 #include <iostream>
@@ -233,7 +234,7 @@ void NetworkModul::stopConnection() {
 		//send a message to own server connection to wake up the waiting connection thread
 		//TODO: Create an particular Messagetype for this case
 		auto clientFd = connectToClient("localhost",port);
-		auto stopMessage = make_shared<RunCommandMessage>("localhost",port,0,0,"");
+		auto stopMessage = make_shared<StopSystemMessage>();
 
 		sendMessage(clientFd,stopMessage);
 

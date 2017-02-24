@@ -9,6 +9,7 @@
 #define MESSAGETEST_H_
 
 #include "../message/Message.h"
+#include "../message/RunCommandMessage.h"
 
 class MessageTest : public ::testing::Test {
 public:
@@ -19,14 +20,14 @@ protected:
 };
 
 TEST_F(MessageTest, RunCommandMessage) {
+	cout << "~~~~~~~~~~ Start test: RunCommandMessage ~~~~~~~~~~" << endl;
 	string receiver = "127.0.0.1";
 	int port = 2047;
 	int commandID = 1337;
-	int updateRate = 333;
 	int rootRight = 0;
 	string command = "This is_a_command -I -have to send";
 
-	RunCommandMessage originalMessage(receiver, port,commandID, updateRate, rootRight, command);
+	RunCommandMessage originalMessage(port,commandID, rootRight, command);
 
 	auto stream = originalMessage.getByteMessage();
 
@@ -41,10 +42,9 @@ TEST_F(MessageTest, RunCommandMessage) {
 	EXPECT_TRUE(originalMessage.getMessageSize() 	== convertedBack.getMessageSize());
 	EXPECT_TRUE(originalMessage.getMessageID() 		== convertedBack.getMessageID());
 	EXPECT_TRUE(originalMessage.getPort() 			== convertedBack.getPort());
-	EXPECT_TRUE(originalMessage.getUpdateRate() 	== convertedBack.getUpdateRate());
 	EXPECT_TRUE(originalMessage.hasRootRight() 		== convertedBack.hasRootRight());
 	EXPECT_TRUE(originalMessage.getCommand() 		== convertedBack.getCommand());
-	ASSERT_EQ(originalMessage.getIP(), convertedBack.getIP());
+	cout << "~~~~~~~~~~ Finish test: RunCommandMessage ~~~~~~~~~~" << endl;
 }
 
 

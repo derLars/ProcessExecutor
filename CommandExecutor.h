@@ -9,6 +9,10 @@
 #define COMMANDEXECUTOR_H_
 
 #include "NetworkModul.h"
+#include "message/RunCommandMessage.h"
+#include "message/StopCommandMessage.h"
+#include "message/StopAllCommandsMessage.h"
+#include "message/ProcessInformationMessage.h"
 
 #include <unordered_map>
 #include <memory>
@@ -30,13 +34,14 @@ public:
 
 	void runCommand(shared_ptr<RunCommandMessage> message);
 
-	void stopCommand(int commandID);
+	void stopCommand(shared_ptr<StopCommandMessage> message);
 	void stopAllCommands(void);
 
-	void updateSubscriber(string ip, int port);
+	void updateSubscriber(shared_ptr<Message> message);
 
 	void sendMessage(int port, string message);
 
+	vector<int> getListOfRunningProcesses(void);
 private:
 	shared_ptr<NetworkModul> network;
 

@@ -24,7 +24,7 @@ class Process {
 public:
 	bool processValid;
 	string processID;
-	string originalID;
+	pid_t originalID;
 	string command;
 	int commandID;
 

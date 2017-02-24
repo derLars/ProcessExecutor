@@ -86,7 +86,7 @@ bool Process::runProcess(int commandID, string command) {
 	command += " < " + pipeToProcess + " > " + pipeFromProcess + " & echo $!";
 
 	auto pid = fork();
-
+	originalID = pid;
 	if (pid < 0) {
 		//Something went wrong during the duplication of the process
 		close(inputPipe[0]);
@@ -122,7 +122,6 @@ bool Process::runProcess(int commandID, string command) {
 		_exit(1);
 	}
 
-	originalID = pid;
 	//The parent process does only need one end of the pipes
 	close(inputPipe[0]);
 	close(outputPipe[1]);
@@ -147,6 +146,10 @@ bool Process::runProcess(int commandID, string command) {
 		close(receiveFd);
 		processValid = false;
 	}
+
+	cout << "TO KILL: " << pid << endl;
+	kill (originalID,SIGTERM);
+	waitpid(originalID, &status, WNOHANG);
 
 	return processValid;
 }
@@ -222,8 +225,11 @@ bool Process::obtainProcessInformation() {
 }
 
 void Process::endProcess() {
-	kill (atoi(processID.c_str()),SIGTERM);
+	int status;
+	kill (originalID,SIGTERM);
+	waitpid(originalID, &status, WNOHANG);
 
+	kill (atoi(processID.c_str()),SIGTERM);
 	while(obtainProcessInformation()) {}
 
 	processValid = false;

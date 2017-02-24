@@ -15,6 +15,11 @@ using namespace std;
 
 
 #define RUN_COMMAND_MESSAGE 1
+#define STOP_COMMAND_MESSAGE 2
+#define STOP_ALL_COMMANDS_MESSAGE 3
+#define CHANGE_UPDATE_RATE_MESSAGE 4
+#define PROCESS_INFORMATION_MESSAGE 5
+
 #define MAX_PAYLOAD 1468
 
 
@@ -139,51 +144,5 @@ protected:
 
 	bool valid;
 };
-
-/**
- *
- */
-class RunCommandMessage : public Message {
-public:
-	RunCommandMessage(string ip, uint16_t port, uint16_t commandID, uint16_t rootRight, string command) {
-		valid = true;
-
-		this->ip = ip;
-
-		messageSize = command.size();
-		messageID = RUN_COMMAND_MESSAGE;
-		this->port = port;
-
-		optional1 = commandID;
-		optional2 = rootRight;
-
-		if(messageSize > MAX_PAYLOAD) {
-			valid = false;
-		}
-
-		payload = command;
-	}
-
-	RunCommandMessage(Message &obj) : Message(obj) {
-
-	}
-
-	/**
-	 * returns the unique commandID of the command to execute
-	 */
-	uint16_t getCommandID(void) {
-		return optional1;
-	}
-
-	bool hasRootRight(void) {
-		return optional2 > 0;
-	}
-
-	string getCommand(void) {
-		return payload;
-	}
-};
-
-
 
 #endif /* MESSAGE_H_ */

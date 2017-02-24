@@ -32,21 +32,38 @@ void CommandExecutor::processMessage() {
 		auto message = network->processMessage();
 
 		switch(message->getMessageID()) {
-		case 1:
-			cout << "Processing runCommandMessage" << endl;
-			//auto runCommandMessage = static_pointer_cast<RunCommandMessage>(message);
+			case RUN_COMMAND_MESSAGE: {
+				cout << "Processing runCommandMessage" << endl;
+				//auto runCommandMessage = static_pointer_cast<RunCommandMessage>(message);
 
-			//Add subscriber
-			 auto key = subscriber.find (message->getIP());
-			 if( key == subscriber.end() ) {
-				 auto clientFd = network->connectToClient(message->getIP(), message->getPort());
-				 subscriber[message->getIP()] = clientFd;
+				 updateSubscriber(message);
 
-			 }
+				 runCommand(static_pointer_cast<RunCommandMessage>(message));
 
-			 runCommand(static_pointer_cast<RunCommandMessage>(message));
+				 break;
+			}
+			case STOP_COMMAND_MESSAGE: {
+				cout << "Processing stopCommandMessage" << endl;
 
-			 break;
+				updateSubscriber(message);
+
+				stopCommand(static_pointer_cast<StopCommandMessage>(message));
+				break;
+			}
+			case STOP_ALL_COMMANDS_MESSAGE: {
+				cout << "Processing stopAllCommandsMessage" << endl;
+
+				updateSubscriber(message);
+
+				stopAllCommands();
+				break;
+			}
+			case CHANGE_UPDATE_RATE_MESSAGE: {
+				cout << "Processing changeUpdateRateMessage" << endl;
+
+				updateSubscriber(message);
+				break;
+			}
 		}
 	}
 }
@@ -55,8 +72,13 @@ void CommandExecutor::sendMessage(int port, string message) {
 	//network->sendMessage("localhost", port, message);
 }
 
-void CommandExecutor::updateSubscriber(string ip, int port) {
-	subscriber[ip] = port;
+void CommandExecutor::updateSubscriber(shared_ptr<Message> message) {
+	//Add subscriber
+	 auto key = subscriber.find (message->getIP());
+	 if( key == subscriber.end() ) {
+		 auto clientFd = network->connectToClient(message->getIP(), message->getPort());
+		 subscriber[message->getIP()] = clientFd;
+	 }
 }
 
 /*vector<string> CommandExecutor::splitString(string str, string delimiter) {
@@ -121,13 +143,16 @@ void CommandExecutor::runCommand(shared_ptr<RunCommandMessage> message) {
 	 }
 }
 
-void CommandExecutor::stopCommand(int commandID) {
+void CommandExecutor::stopCommand(shared_ptr<StopCommandMessage> message) {
 	unique_lock<mutex> lock(commandMutex);
 
-	auto currentProcess = runningProcess.find(commandID);
-	if(currentProcess != runningProcess.end()) {
-		(currentProcess->second)->endProcess();
-		runningProcess.erase(commandID);
+	for (auto& currentProcess: runningProcess) {
+		if(message->getPid() == stoi(currentProcess.second->processID)) {
+			cout << "Found process to end!" << endl;
+			(currentProcess.second)->endProcess();
+			runningProcess.erase(currentProcess.second->commandID);
+			break;
+		}
 	}
 }
 
@@ -136,6 +161,15 @@ void CommandExecutor::stopAllCommands(void) {
 
 	for (auto& currentProcess: runningProcess) {
 		currentProcess.second->endProcess();
-		runningProcess.erase(currentProcess.first);
 	}
+	runningProcess.clear();
+}
+
+vector<int> CommandExecutor::getListOfRunningProcesses(void) {
+	vector<int> returnList;
+
+	for (auto& currentProcess: runningProcess) {
+		returnList.push_back(stoi(currentProcess.second->processID));
+	}
+	return returnList;
 }

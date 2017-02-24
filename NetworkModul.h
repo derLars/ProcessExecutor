@@ -9,6 +9,7 @@
 #define NETWORKMODUL_H_
 
 #include "message/Message.h"
+#include "message/RunCommandMessage.h"
 
 //#include <memory>
 //#include <stdio.h>
