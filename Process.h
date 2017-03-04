@@ -29,7 +29,7 @@ public:
 	int commandID;
 
 	//Provided information after calling 'obtainProcessInformation'
-	string timestamp;
+	//string timestamp;
 	string cpuUsage;
 	string memUsage;
 
@@ -101,7 +101,7 @@ private:
 	 * Helper function to create a timestamp.
 	 * hh:mm:ss
 	 */
-	string createTimestamp();
+	//string createTimestamp();
 
 	/**
 	 * Helperfunction to obtain the PID of the process.

@@ -34,14 +34,14 @@ public:
 	}
 
 	/**
-	 * returns the unique commandID of the command to execute.
+	 * Return the unique commandID of the command to execute.
 	 */
 	uint16_t getCommandID(void) {
 		return optional1;
 	}
 
 	/**
-	 * Returns the demand for root rights.
+	 * Return the demand for root rights.
 	 * 0 = no root
 	 * 1 = root
 	 */
@@ -50,7 +50,7 @@ public:
 	}
 
 	/**
-	 * Returns the command which needs to be executed.
+	 * Return the command which needs to be executed.
 	 */
 	string getCommand(void) {
 		return payload;

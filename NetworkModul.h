@@ -36,6 +36,8 @@ public:
 	bool settedUp;
 	bool running;
 
+	int port;
+
 	NetworkModul();
 	NetworkModul(int port);
 
@@ -72,20 +74,15 @@ public:
 
 	/**
 	 * Send a message to a server
-	 *
-	 * @param ip IP address of the server
-	 * @param port port of the server
-	 * @param message message to send
 	 **/
 	bool sendMessage(int sockFd, shared_ptr<Message> message);
+
 
 private:
 	//queue<Message> messageQueue;
 	queue<shared_ptr<Message>> messageQueue;
 	mutex messageMutex;
 	condition_variable messageAvailable;
-
-	int port;
 
 	int tcpConnection;
 	int sockfd;

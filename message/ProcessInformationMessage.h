@@ -11,8 +11,9 @@
 #include "Message.h"
 
 class ProcessInformationMessage : public Message {
+public:
 
-	ProcessInformationMessage(uint16_t port, uint16_t pid, uint16_t cpuUsage, uint16_t memUsage, vector<int> listOfProcesses) {
+	ProcessInformationMessage(uint16_t port, uint16_t pid, uint16_t cpuUsage, uint16_t memUsage, uint16_t timestamp, string command) {
 		valid = true;
 
 		messageID = PROCESS_INFORMATION_MESSAGE;
@@ -21,15 +22,9 @@ class ProcessInformationMessage : public Message {
 		optional1 = pid;
 		optional2 = cpuUsage;
 		optional3 = memUsage;
+		optional6 = timestamp;
 
-		payload = "";
-
-		for(auto process : listOfProcesses) {
-			if(process != listOfProcesses.front()){
-				payload += " ";
-			}
-			payload += to_string(process);
-		}
+		payload = command;
 
 		messageSize = payload.size();
 	}
@@ -39,55 +34,42 @@ class ProcessInformationMessage : public Message {
 	}
 
 	/**
-	 *
+	 * Return information about the process ID of the process
 	 */
 	uint16_t getPid(void) {
 		return optional1;
 	}
 
 	/**
-	 *
+	 * Return information about the CPU usage of the process
 	 */
 	uint16_t getCpuUsage(void) {
 		return optional2;
 	}
 
 	/**
-	 *
+	 * Return information about the memory usage of the process
 	 */
 	uint16_t getMemUsage(void) {
 		return optional3;
 	}
 
-	vector<int> getListOfProcesses(void) {
-		return splitString(payload, ' ');
+	/**
+	 * Return the timestamp of the current record
+	 */
+	uint32_t getTimeStamp(void) {
+		return optional6;
+	}
+
+	/**
+	 * Return the command of the process
+	 */
+	string getCommand(void) {
+		return payload;
 	}
 
 private:
-	vector<int> splitString(string str, char delimiter) {
-		vector<char> cstr(str.c_str(), str.c_str() + str.size() + 1);
-		vector<int> result;
-		string currentWord = "";
 
-		//iterate each character and compare with given delimiter
-		for(auto& chr : cstr) {
-			if(chr == delimiter && currentWord.size()) {
-				result.push_back(stoi(currentWord));
-				currentWord = "";
-			}else if(chr != delimiter){
-				currentWord += chr;
-			}
-		}
-
-		//put last word into vector
-		if(currentWord.size()){
-			result.push_back(stoi(currentWord));
-		}
-
-		return result;
-	}
 };
-
-
 
 #endif /* PROCESSINFORMATIONMESSAGE_H_ */

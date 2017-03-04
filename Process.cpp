@@ -24,14 +24,10 @@
 #include <sstream>
 #include <iomanip>
 
-Process::Process() {
-	processID = -1;
-	processValid = false;
-	//sendPipe = -1;
-	//receivePipe = -1;
+Process::Process()
+: processValid(false),  processID("-1"), originalID(-1), command(""), commandID(-1), cpuUsage("-1"), memUsage("-1"), sendFd(-1), receiveFd(-1)
+, receivePipe(-1), pipeToProcess(""), pipeFromProcess(""){
 
-	cpuUsage = "-1";
-	memUsage = "-1";
 }
 
 Process::Process(int commandID, string command) : Process() {
@@ -191,10 +187,12 @@ bool Process::obtainProcessInformation() {
 		// -p PID		-> Process of interest.
 		// | grep PID	-> filter header
 		auto topCommand = "top -n 1 -b -p " + processID + "  | grep " + processID;
+
 		//prepare variables
 		auto numOfBytes = 128;
 		char buffer[numOfBytes];
 		string processInformation = "";
+
 		//open pipe and read information
 		auto pipe = popen(topCommand.c_str(), "r");
 		if (!pipe) {
@@ -217,7 +215,7 @@ bool Process::obtainProcessInformation() {
 		if(vec.size() > 7) {
 			cpuUsage = vec[8];
 			memUsage = vec[9];
-			timestamp = createTimestamp();
+			//timestamp = createTimestamp();
 			return true;
 		}
 	}
@@ -226,8 +224,8 @@ bool Process::obtainProcessInformation() {
 
 void Process::endProcess() {
 	int status;
-	kill (originalID,SIGTERM);
-	waitpid(originalID, &status, WNOHANG);
+	//kill (originalID,SIGTERM);
+	//waitpid(originalID, &status, WNOHANG);
 
 	kill (atoi(processID.c_str()),SIGTERM);
 	while(obtainProcessInformation()) {}
@@ -273,11 +271,13 @@ vector<string> Process::splitString(string str, char delimiter) {
 	return result;
 }
 
-string Process::createTimestamp() {
-    auto now = chrono::system_clock::now();
+/*string Process::createTimestamp() {
+	std::chrono::system_clock::time_point = std::chrono::system_clock::now();
+
+	auto now = chrono::system_clock::now();
     auto in_time_t = chrono::system_clock::to_time_t(now);
 
     stringstream ss;
     ss << put_time(localtime(&in_time_t), "%X");
     return ss.str();
-}
+}*/

@@ -11,7 +11,7 @@
 #include "Message.h"
 
 class ChangeUpdateRateMessage : public Message {
-
+public:
 	ChangeUpdateRateMessage(uint16_t port, uint16_t updateRate) {
 		valid = true;
 
@@ -27,13 +27,11 @@ class ChangeUpdateRateMessage : public Message {
 	}
 
 	/**
-	 * returns requested update rate
+	 * Return requested update rate
 	 */
 	uint16_t getUpdateRate(void) {
 		return optional1;
 	}
 };
-
-
 
 #endif /* CHANGEUPDATERATEMESSAGE_H_ */

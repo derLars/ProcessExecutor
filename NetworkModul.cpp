@@ -20,7 +20,7 @@
 //Necessary for the 'bzero' call
 #include <string.h>
 
-#define HEADER_SIZE 12
+//#define HEADER_SIZE 12
 
 NetworkModul::NetworkModul(): NetworkModul(1337) {
 	//Arbitrary defined standard port of 1337 in case no port is mentioned
@@ -84,13 +84,9 @@ void NetworkModul::waitForMessage() {
 	int  n;
 
 	while(running) {
-		cout << "waiting for message to receive!" << endl;
-
 		//wait for incoming connections
 		newsockfd = accept(sockfd, (struct sockaddr *)&cli_addr, &clilen);
 		string ip = inet_ntoa(cli_addr.sin_addr);
-
-		cout << "received connection" << endl;
 
 		//something went wrong
 		if (newsockfd < 0) {
@@ -131,17 +127,14 @@ void NetworkModul::waitForMessage() {
 		}
 
 		//termine condition
-		if(!running) {
-			cout << "ending connection!" << endl;
-			return;
+		if(running) {
+			//write message into message queue and send a notification
+			//to waiting threads
+			messageMutex.lock();
+				messageQueue.push(message);
+			messageMutex.unlock();
+			messageAvailable.notify_one();
 		}
-
-		//write message into message queue and send a notification
-		//to waiting threads
-		messageMutex.lock();
-			messageQueue.push(message);
-		messageMutex.unlock();
-		messageAvailable.notify_one();
 	}
 
 	close(sockfd);
@@ -149,8 +142,6 @@ void NetworkModul::waitForMessage() {
 
 shared_ptr<Message> NetworkModul::processMessage() {
 	unique_lock<mutex> lock(messageMutex);
-
-	cout << "waiting for message to process!" << endl;
 
 	//waiting for message incoming in message queue
 	while(messageQueue.empty() && running) {

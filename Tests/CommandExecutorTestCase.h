@@ -47,6 +47,7 @@ TEST_F(CommandExecutorTestCase, CommandExecutor) {
 	EXPECT_EQ(list.size(), 1);
 
 	//------ Testcase 2: Run same command again ------
+	/*
 	client = network.connectToClient("localhost",1337);
 	network.sendMessage(client, runCommandMessage);
 	network.disconnectFromClient(client);
@@ -110,7 +111,7 @@ TEST_F(CommandExecutorTestCase, CommandExecutor) {
 	EXPECT_EQ(list.size(), 0);
 
 	system("sleep 5");
-
+	*/
 	cout << "~~~~~~~~~~ Finish test: CommandExecutorTestCase modul ~~~~~~~~~~" << endl;
 }
 

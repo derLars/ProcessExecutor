@@ -27,7 +27,7 @@ public:
 	}
 
 	/**
-	 * returns the unique PID of the command to stop.
+	 * Return the unique PID of the command to stop.
 	 */
 	uint16_t getPid(void) {
 		return optional1;

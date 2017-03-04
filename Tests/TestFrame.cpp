@@ -27,9 +27,9 @@
 #include "../googleTestLib/gtest/gtest.h"
 
 //INCLUDE YOUR TESTCASES HERE!
-#include "MessageTest.h"
-#include "ProcessTest.h"
-#include "NetworkModulTest.h"
+//#include "MessageTest.h"
+//#include "ProcessTest.h"
+//#include "NetworkModulTest.h"
 #include "CommandExecutorTestCase.h"
 
 int main(int argc, char** argv) {
