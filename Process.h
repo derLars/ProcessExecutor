@@ -35,7 +35,7 @@ public:
 
 	Process();
 
-	Process(int commandID, string command);
+	Process(int commandID, string command, int permission);
 
 	virtual ~Process();
 
@@ -46,7 +46,7 @@ public:
 	 * @param commandID a unique id for each command
 	 * @param command the command to be executed
 	 */
-	bool runProcess(int commandID, string command);
+	bool runProcess(int commandID, string command, int permission);
 
 	/**
 	 * Read incoming message bytewise as long as the are bytes to read or the end of line is reached.
@@ -87,6 +87,8 @@ private:
 
 	string pipeToProcess;
 	string pipeFromProcess;
+
+	void setPermission(string command, int permission);
 
 	/**
 	 * Helper function to split strings into substrings

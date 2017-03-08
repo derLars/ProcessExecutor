@@ -64,6 +64,8 @@ void NetworkModul::startConnection() {
 	}
 
 	settedUp = true;
+	networkReady.notify_all();
+	cout << "SETUP: " << settedUp << endl;
 	if(running) {
 		waitForMessage();
 	}
@@ -93,6 +95,7 @@ void NetworkModul::waitForMessage() {
 			continue;
 		}
 
+		cout << "received Connection" << endl;
 		//connection is established,start communicating
 		bzero(header,HEADER_SIZE);
 		n = read( newsockfd,header,HEADER_SIZE );
@@ -104,12 +107,20 @@ void NetworkModul::waitForMessage() {
 
 		auto message = make_shared<Message>(header, ip);
 
+		cout << "HEADER:" << endl;
+		cout << "ID: " << message->getMessageID() << endl;
+		cout << "Port: " << message->getPort() << endl;
+		cout << "IP: " << message->getIP() << endl;
+		cout << "size: " << message->getMessageSize() << endl;
+
 		auto payloadSize = message->getMessageSize();
 		if(payloadSize) {
 			char payload[payloadSize];
 
 			bzero(payload,payloadSize);
 			n = read(newsockfd,payload,payloadSize);
+
+			close(newsockfd);
 
 			if (n < 0) {
 				perror("ERROR reading PAYLOAD from socket");
@@ -124,6 +135,7 @@ void NetworkModul::waitForMessage() {
 			}else{
 				message->setPayload(payload);
 			}
+			cout << "payload: " << message->getPayload() << endl;
 		}
 
 		//termine condition
@@ -131,6 +143,7 @@ void NetworkModul::waitForMessage() {
 			//write message into message queue and send a notification
 			//to waiting threads
 			messageMutex.lock();
+				cout << "put on stack" << endl;
 				messageQueue.push(message);
 			messageMutex.unlock();
 			messageAvailable.notify_one();
@@ -143,6 +156,7 @@ void NetworkModul::waitForMessage() {
 shared_ptr<Message> NetworkModul::processMessage() {
 	unique_lock<mutex> lock(messageMutex);
 
+	cout << "waiting for incomming Message" << endl;
 	//waiting for message incoming in message queue
 	while(messageQueue.empty() && running) {
 		messageAvailable.wait(lock);
@@ -152,7 +166,7 @@ shared_ptr<Message> NetworkModul::processMessage() {
 			return make_shared<Message>();
 		}
 	}
-
+	cout << "Take from Stack" << endl;
 	auto message = messageQueue.front();
 	messageQueue.pop();
 

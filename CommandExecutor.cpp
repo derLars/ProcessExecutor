@@ -8,15 +8,22 @@
 #include "CommandExecutor.h"
 #include <iostream>
 
-CommandExecutor::CommandExecutor(int port, int maxRunningCommands): running(true), maxRunningCommands(maxRunningCommands), updateRate(DEFAULT_UPDATE_RATE){
+CommandExecutor::CommandExecutor(int port, int maxRunningCommands, int numThreads): running(true), maxRunningCommands(maxRunningCommands), updateRate(DEFAULT_UPDATE_RATE){
 	network = make_shared<NetworkModul>(port);
 
 	networkThread = thread(&NetworkModul::startConnection, network);
 
-	while(!network->settedUp){}
+	mutex dummyMutex;
+	unique_lock<mutex> lock(dummyMutex);
+	while(!network->settedUp) {
+		network->networkReady.wait(lock);
+	}
+
+	//while(!network->settedUp){}
 	running = network->running;
 
-	for(int i=0; i<MSGTHREAD; i++) {
+	cout << "I want to create " << numThreads << " threads" << endl;
+	for(int i=0; i<numThreads; i++) {
 		msgThreadpool.push_back(thread(&CommandExecutor::processMessage, this));
 	}
 
@@ -213,7 +220,7 @@ void CommandExecutor::runCommand(shared_ptr<RunCommandMessage> message) {
 
 	 //Run process if maxRunningCommands is not reached yet.
 	 if(runningProcess.size() < maxRunningCommands) {
-		 runningProcess[message->getCommandID()] = make_shared<Process>(message->getCommandID(),message->getCommand());
+		 runningProcess[message->getCommandID()] = make_shared<Process>(message->getCommandID(),message->getCommand(), message->getPermission());
 	 }
 }
 

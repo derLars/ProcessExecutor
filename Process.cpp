@@ -30,15 +30,17 @@ Process::Process()
 
 }
 
-Process::Process(int commandID, string command) : Process() {
-	runProcess(commandID, command);
+Process::Process(int commandID, string command, int permission) : Process() {
+	runProcess(commandID, command, permission);
 }
 
 Process::~Process() {
 	endProcess();
 }
 
-bool Process::runProcess(int commandID, string command) {
+bool Process::runProcess(int commandID, string command, int permission) {
+	cout << "Running a process: " << command << endl;
+
 	processValid = true;
 
 	int inputPipe[2];
@@ -76,6 +78,7 @@ bool Process::runProcess(int commandID, string command) {
 		//processValid = false;
 	}
 
+	setPermission(command, permission);
 	this->command = command;
 	this->commandID = commandID;
 
@@ -148,6 +151,45 @@ bool Process::runProcess(int commandID, string command) {
 	waitpid(originalID, &status, WNOHANG);
 
 	return processValid;
+}
+
+
+void Process::setPermission(string command, int permission) {
+	if(permission >= 0 && permission <= 777) {
+		//split the command to identify the executable
+		auto commandSplitted = splitString(command, ' ');
+		auto executable = commandSplitted.at(0);
+
+		for(unsigned int i=0; i<commandSplitted.size(); i++) {
+			auto identifier1 = commandSplitted.at(i).find("./");
+			auto identifier2 = commandSplitted.at(i).find(".sh");
+
+			if(identifier1 != std::string::npos) {
+				executable = commandSplitted.at(i);
+				executable.erase(0,2);
+				break;
+			}else if(identifier2 != std::string::npos) {
+				executable = commandSplitted.at(i);
+				break;
+			}
+		}
+
+		if(executable == "sudo") {
+			executable = commandSplitted.at(1);
+		}
+
+		cout << "Executable: " << executable << endl;
+		int status;
+		auto pid = fork ();
+		if (pid == 0) {
+			string permissionCommand = "chmod " + to_string(permission) + " " + executable;
+
+			execl("/bin/bash", "bash", "-c", permissionCommand.c_str(), NULL);
+			_exit (EXIT_FAILURE);
+		} else {
+			waitpid (pid, &status, 0);
+		}
+	}
 }
 
 void Process::sendToProcess(string message) {
@@ -223,7 +265,7 @@ bool Process::obtainProcessInformation() {
 }
 
 void Process::endProcess() {
-	int status;
+	//int status;
 	//kill (originalID,SIGTERM);
 	//waitpid(originalID, &status, WNOHANG);
 

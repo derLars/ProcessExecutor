@@ -77,12 +77,13 @@ public:
 	 **/
 	bool sendMessage(int sockFd, shared_ptr<Message> message);
 
-
+	condition_variable networkReady;
 private:
 	//queue<Message> messageQueue;
 	queue<shared_ptr<Message>> messageQueue;
 	mutex messageMutex;
 	condition_variable messageAvailable;
+
 
 	int tcpConnection;
 	int sockfd;

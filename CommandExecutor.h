@@ -36,7 +36,7 @@ class CommandExecutor {
 public:
 	bool running;
 
-	CommandExecutor(int port, int maxRunningCommands);
+	CommandExecutor(int port, int maxRunningCommands, int numThreads);
 	virtual ~CommandExecutor();
 
 	/**
