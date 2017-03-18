@@ -30,15 +30,15 @@ Process::Process()
 
 }
 
-Process::Process(int commandID, string command, int permission) : Process() {
-	runProcess(commandID, command, permission);
+Process::Process(int commandID, string command) : Process() {
+	runProcess(commandID, command);
 }
 
 Process::~Process() {
 	endProcess();
 }
 
-bool Process::runProcess(int commandID, string command, int permission) {
+bool Process::runProcess(int commandID, string command) {
 	cout << "Running a process: " << command << endl;
 
 	processValid = true;
@@ -78,7 +78,6 @@ bool Process::runProcess(int commandID, string command, int permission) {
 		//processValid = false;
 	}
 
-	setPermission(command, permission);
 	this->command = command;
 	this->commandID = commandID;
 
@@ -153,45 +152,6 @@ bool Process::runProcess(int commandID, string command, int permission) {
 	return processValid;
 }
 
-
-void Process::setPermission(string command, int permission) {
-	if(permission >= 0 && permission <= 777) {
-		//split the command to identify the executable
-		auto commandSplitted = splitString(command, ' ');
-		auto executable = commandSplitted.at(0);
-
-		for(unsigned int i=0; i<commandSplitted.size(); i++) {
-			auto identifier1 = commandSplitted.at(i).find("./");
-			auto identifier2 = commandSplitted.at(i).find(".sh");
-
-			if(identifier1 != std::string::npos) {
-				executable = commandSplitted.at(i);
-				executable.erase(0,2);
-				break;
-			}else if(identifier2 != std::string::npos) {
-				executable = commandSplitted.at(i);
-				break;
-			}
-		}
-
-		if(executable == "sudo") {
-			executable = commandSplitted.at(1);
-		}
-
-		cout << "Executable: " << executable << endl;
-		int status;
-		auto pid = fork ();
-		if (pid == 0) {
-			string permissionCommand = "chmod " + to_string(permission) + " " + executable;
-
-			execl("/bin/bash", "bash", "-c", permissionCommand.c_str(), NULL);
-			_exit (EXIT_FAILURE);
-		} else {
-			waitpid (pid, &status, 0);
-		}
-	}
-}
-
 void Process::sendToProcess(string message) {
 	//write(sendPipe, message.c_str(), message.size());
 	write(sendFd, message.c_str(), message.size());
@@ -250,13 +210,12 @@ bool Process::obtainProcessInformation() {
 			throw;
 		}
 		pclose(pipe);
-
 		//provide the obtained information
 		auto vec = splitString(processInformation, ' ');
 
 		if(vec.size() > 7) {
-			cpuUsage = vec[8];
-			memUsage = vec[9];
+			cpuUsage = vec[CPU_IDX];
+			memUsage = vec[MEM_IDX];
 			//timestamp = createTimestamp();
 			return true;
 		}

@@ -18,6 +18,11 @@
 
 //#include <boost/variant.hpp>
 
+//These indexes are highly dependable on the system
+#define PID_IDX 0
+#define CPU_IDX 6
+#define MEM_IDX 7
+
 using namespace std;
 
 class Process {
@@ -35,7 +40,7 @@ public:
 
 	Process();
 
-	Process(int commandID, string command, int permission);
+	Process(int commandID, string command);
 
 	virtual ~Process();
 
@@ -46,7 +51,7 @@ public:
 	 * @param commandID a unique id for each command
 	 * @param command the command to be executed
 	 */
-	bool runProcess(int commandID, string command, int permission);
+	bool runProcess(int commandID, string command);
 
 	/**
 	 * Read incoming message bytewise as long as the are bytes to read or the end of line is reached.
@@ -87,8 +92,6 @@ private:
 
 	string pipeToProcess;
 	string pipeFromProcess;
-
-	void setPermission(string command, int permission);
 
 	/**
 	 * Helper function to split strings into substrings

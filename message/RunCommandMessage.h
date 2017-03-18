@@ -12,7 +12,7 @@
 
 class RunCommandMessage : public Message {
 public:
-	RunCommandMessage(uint16_t port, uint16_t commandID, uint16_t permission, string command) {
+	RunCommandMessage(uint16_t port, uint16_t commandID, string command) {
 		valid = true;
 
 		messageSize = command.size();
@@ -20,7 +20,6 @@ public:
 		this->port = port;
 
 		optional1 = commandID;
-		optional2 = permission;
 
 		if(messageSize > MAX_PAYLOAD) {
 			valid = false;
@@ -38,13 +37,6 @@ public:
 	 */
 	uint16_t getCommandID(void) {
 		return optional1;
-	}
-
-	/**
-	 * Return the permission for the process.
-	 */
-	uint16_t getPermission(void) {
-		return optional2;
 	}
 
 	/**

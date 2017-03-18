@@ -10,7 +10,7 @@
 
 #include <string>
 #include <vector>
-
+#include <iostream>
 using namespace std;
 
 
@@ -28,7 +28,7 @@ using namespace std;
 
 class Message {
 public:
-	Message(char header[12], string ip) {
+	Message(char header[HEADER_SIZE], string ip) {
 		messageSize = (header[0] << 8) | (header[1] & 0xff);
 		messageID 	= (header[2] << 8) | (header[3] & 0xff);
 		port 		= (header[4] << 8) | (header[5] & 0xff);
@@ -117,6 +117,7 @@ public:
 	vector<char> getByteMessage(void) {
 		vector<char> stream;
 
+		cout << "messageSize: " << messageSize << endl;
 		char byte = (messageSize >> 8) & 0xff;
 		stream.push_back(byte);
 		byte = messageSize & 0xff;

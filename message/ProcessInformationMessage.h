@@ -22,7 +22,7 @@ public:
 		optional1 = pid;
 		optional2 = cpuUsage;
 		optional3 = memUsage;
-		optional6 = timestamp;
+		optional6 = timestamp / 100;
 
 		payload = command;
 

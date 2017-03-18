@@ -20,6 +20,7 @@
 //Necessary for the 'bzero' call
 #include <string.h>
 
+
 //#define HEADER_SIZE 12
 
 NetworkModul::NetworkModul(): NetworkModul(1337) {
@@ -65,7 +66,7 @@ void NetworkModul::startConnection() {
 
 	settedUp = true;
 	networkReady.notify_all();
-	cout << "SETUP: " << settedUp << endl;
+
 	if(running) {
 		waitForMessage();
 	}
@@ -120,22 +121,17 @@ void NetworkModul::waitForMessage() {
 			bzero(payload,payloadSize);
 			n = read(newsockfd,payload,payloadSize);
 
+			string newPayload = "";
+			newPayload.append(payload);
+			newPayload.erase(payloadSize,newPayload.size()-payloadSize);
+
 			close(newsockfd);
 
 			if (n < 0) {
 				perror("ERROR reading PAYLOAD from socket");
 				continue;
 			}
-
-			if(payload[n] != 'n') {
-				char modPayload[n];
-
-				strncpy(modPayload, payload, n);
-				message->setPayload(modPayload);
-			}else{
-				message->setPayload(payload);
-			}
-			cout << "payload: " << message->getPayload() << endl;
+			message->setPayload(newPayload);
 		}
 
 		//termine condition
@@ -174,6 +170,10 @@ shared_ptr<Message> NetworkModul::processMessage() {
 }
 
 int NetworkModul::connectToClient(string ip, int port) {
+	cout << "connect to client with: " << endl;
+	cout << ip << endl;
+	cout << port << endl;
+
 	int sockFd = -1;
 
 	struct sockaddr_in cli_addr;

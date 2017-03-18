@@ -122,6 +122,10 @@ void CommandExecutor::updateSubscriber(void) {
 			continue;
 		}
 
+		if(runningProcess.size() == 0) {
+			start = std::chrono::system_clock::now();
+		}
+
 		auto now = std::chrono::system_clock::now();
 		auto elapsed = now - start;
 		auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed);
@@ -134,6 +138,7 @@ void CommandExecutor::updateSubscriber(void) {
 				auto cpuUsage 	= stoi((process.second)->cpuUsage);
 				auto memUsage 	= stoi((process.second)->memUsage);
 				auto timestamp 	= ms.count();
+				cout << "timestamp: " << timestamp << endl;
 				auto command 	= (process.second)->command;
 
 				auto message = make_shared<ProcessInformationMessage>(port, pid, cpuUsage, memUsage, timestamp, command);
@@ -161,52 +166,6 @@ void CommandExecutor::changeUpdateRate(shared_ptr<ChangeUpdateRateMessage> messa
 	}
 }
 
-/*vector<string> CommandExecutor::splitString(string str, string delimiter) {
-	vector<char> cstr(str.c_str(), str.c_str() + str.size() + 1);
-	vector<char> deli(delimiter.c_str(), delimiter.c_str() + delimiter.size() + 1);
-
-	vector<string> result;
-
-	string currentWord = "";
-	string currentSubWord = "";
-	//iterate each character and compare with given delimiter
-
-	unsigned int i = 0;
-	for(auto& chr : cstr) {
-		if(chr == deli[i]) {
-			i++;
-			if(i >= delimiter.size()) {
-				result.push_back(currentWord);
-				currentWord = "";
-				currentSubWord = "";
-				i=0;
-			}else{
-				currentSubWord += chr;
-			}
-		}else{
-			if(currentSubWord.size()) {
-				currentWord += currentSubWord;
-				currentSubWord = "";
-			}
-
-			currentWord += chr;
-
-			i=0;
-		}
-	}
-
-	if(currentSubWord.size()) {
-		currentWord += currentSubWord;
-	}
-
-	//put last word into vector
-	if(currentWord.size()){
-		result.push_back(currentWord);
-	}
-
-	return result;
-}*/
-
 void CommandExecutor::runCommand(shared_ptr<RunCommandMessage> message) {
 	//Get exclusive access to list of processes
 	unique_lock<mutex> lock(commandMutex);
@@ -220,7 +179,7 @@ void CommandExecutor::runCommand(shared_ptr<RunCommandMessage> message) {
 
 	 //Run process if maxRunningCommands is not reached yet.
 	 if(runningProcess.size() < maxRunningCommands) {
-		 runningProcess[message->getCommandID()] = make_shared<Process>(message->getCommandID(),message->getCommand(), message->getPermission());
+		 runningProcess[message->getCommandID()] = make_shared<Process>(message->getCommandID(),message->getCommand());
 	 }
 }
 
